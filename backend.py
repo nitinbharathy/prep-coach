@@ -54,9 +54,17 @@ else:
     system_prompt_parse = _DEFAULT_SYSTEM_PROMPT
 
 
+_prompt_path = os.getenv("SYSTEM_PROMPT_JDMATCH")
+if _prompt_path and Path(_prompt_path).exists():
+    system_prompt_jdmatch = Path(_prompt_path).read_text(encoding="utf-8").strip()
+else:
+    system_prompt_jdmatch = _DEFAULT_SYSTEM_PROMPT
+
+
+
 # =============================================================================
 
-def get_ai_response(user_input):
+def parse_resume(user_input):
     # Create OpenAI client
     client = OpenAI(
         api_key=OPENAI_API_KEY
@@ -73,4 +81,26 @@ def get_ai_response(user_input):
     # Extract the AI's text response from the API result
     print(f"AI response: {response}")
     answer = response.output[0].content[0].text
-    return answer
+    prev_resp_id=response.id
+    return answer,prev_resp_id
+
+
+def match_to_jd(user_input_jd, parsed_resume, prev_resp_id):
+
+    # Create OpenAI client
+    client = OpenAI(
+        api_key=OPENAI_API_KEY
+    )
+
+    # Send user message to OpenAI
+    prompt=system_prompt_jdmatch.replace("{{JD}}", user_input_jd)
+    prompt=prompt.replace("{{CV}}", parsed_resume)
+    response = client.responses.create(
+        model="gpt-3.5-turbo",  # Uses GPT-3.5 (cheaper than GPT-4)
+        # instructions = system_prompt_jdmatch,
+        input=prompt
+        # messages=[ {"role": "user", "content": user_message} ]
+    )
+    answer = response.output[0].content[0].text
+    prev_resp_id=response.id
+    return answer,prev_resp_id

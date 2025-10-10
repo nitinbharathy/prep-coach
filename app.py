@@ -1,29 +1,56 @@
 import streamlit as st
-from backend import get_ai_response  # UNCOMMENT THIS LINE WHEN YOUR BACKEND.PY IS READY:
+from backend import parse_resume, match_to_jd  # UNCOMMENT THIS LINE WHEN YOUR BACKEND.PY IS READY:
 
+# Initial setup
 print("🚀 Starting chatbot...")
+
+if 'resumeparsed' not in st.session_state:
+    st.session_state.resumeparsed = False
+
+def step1done():
+    st.session_state.resumeparsed = True
 
 # Configure the web page appearance
 st.set_page_config(page_title="Interview App", page_icon="💼")
 st.title("Welcome to the Interview App")
 
 # Create text input area for user messages
-user_message = st.text_area("Paste your CV:", height=300)
+input_resume = st.text_area("Paste your CV:", height=300)
+
+
+parsed_resume=""
+prev_resp_id=""
+response2=""
+prev_resp_id2=""
 
 # Handle send button click
-if st.button("📤 Send") and user_message:
-    # UNCOMMENT THESE TWO LINES WHEN YOUR BACKEND.PY IS READY:
+if st.button("📤 Go to Step 2", on_click=step1done) and input_resume:
     with st.spinner("Parsing your resume..."):
-        response = get_ai_response(user_message)
+        parsed_resume,prev_resp_id = parse_resume(input_resume)
 
     # Display the conversation
     #st.markdown("**You:**")
-    #st.write(user_message)
+    #st.write(input_resume)
 
     #st.markdown("**AI raw:**")
     # st.write(response)
     st.markdown("**AI JSON:**")
-    st.json(response, expanded=True)
+    st.json(parsed_resume, expanded=False)
+    #resumeparsed=True
+
+if st.session_state.resumeparsed:
+    input_jd=st.text_area("Paste the JD:", height=300)
+
+    if st.button("📤 Generate matches") and input_jd:
+        print("button clicked")
+        with st.spinner("Finding Job match..."):
+            response2, prev_resp_id2 = match_to_jd(input_jd, parsed_resume, prev_resp_id)
+            print("got response clicked")
+
+        st.markdown("**AI JSON:**")
+        st.json(response2, expanded=True)
+
+
     
     
     
