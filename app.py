@@ -13,15 +13,17 @@ user_message = st.text_area("Paste your CV:", height=300)
 # Handle send button click
 if st.button("📤 Send") and user_message:
     # UNCOMMENT THESE TWO LINES WHEN YOUR BACKEND.PY IS READY:
-    with st.spinner("Parsing your resime..."):
+    with st.spinner("Parsing your resume..."):
         response = get_ai_response(user_message)
 
     # Display the conversation
-    st.markdown("**You:**")
-    st.write(user_message)
+    #st.markdown("**You:**")
+    #st.write(user_message)
 
-    st.markdown("**AI:**")
-    st.write(response)
+    #st.markdown("**AI raw:**")
+    # st.write(response)
+    st.markdown("**AI JSON:**")
+    st.json(response, expanded=True)
     
     
     
