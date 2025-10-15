@@ -9,6 +9,7 @@ from openai import OpenAI  # Official OpenAI Python library
 import psycopg2   # For database connections (used in later parts)
 import os
 from pathlib import Path
+# from pypdf import PdfReader
 
 # Function to Load environment variables/secrets
 def _load_env(path: str | Path = ".env") -> None:
@@ -60,15 +61,43 @@ if _prompt_path and Path(_prompt_path).exists():
 else:
     system_prompt_jdmatch = _DEFAULT_SYSTEM_PROMPT
 
-
+_prompt_path = os.getenv("SYSTEM_PROMPT_INTERVIEW")
+if _prompt_path and Path(_prompt_path).exists():
+    system_prompt_interview = Path(_prompt_path).read_text(encoding="utf-8").strip()
+else:
+    system_prompt_interview = _DEFAULT_SYSTEM_PROMPT
 
 # =============================================================================
 
+def transcribe_audio(file_bytes: bytes, filename: str, mime_type: str) -> str:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    response = client.audio.transcriptions.create(
+        model="gpt-4o-mini-transcribe",
+        file=(filename, file_bytes, mime_type)
+        # add any extra settings (language, prompt, temperature ...)
+    )
+    return response.text
+
+def rate_answer(user_input, question, prev_resp_id):
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    prompt=system_prompt_interview
+    prompt=prompt.replace("{{QN}}", question)
+    response = client.responses.create(
+        model="gpt-3.5-turbo",  # Uses GPT-3.5 (cheaper than GPT-4)
+        instructions = system_prompt_interview,
+        input=user_input
+        # messages=[ {"role": "user", "content": user_message} ]
+    )
+
+    # Extract the AI's text response from the API result
+    print(f"AI response: {response}")
+    answer = response.output[0].content[0].text
+    prev_resp_id=response.id
+    return answer,prev_resp_id
+
 def parse_resume(user_input):
     # Create OpenAI client
-    client = OpenAI(
-        api_key=OPENAI_API_KEY
-    )
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
     # Send user message to OpenAI
     response = client.responses.create(
@@ -88,12 +117,11 @@ def parse_resume(user_input):
 def match_to_jd(user_input_jd, parsed_resume, prev_resp_id):
 
     # Create OpenAI client
-    client = OpenAI(
-        api_key=OPENAI_API_KEY
-    )
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
     # Send user message to OpenAI
-    prompt=system_prompt_jdmatch.replace("{{JD}}", user_input_jd)
+    prompt=system_prompt_jdmatch
+    prompt=prompt.replace("{{JD}}", user_input_jd)
     prompt=prompt.replace("{{CV}}", parsed_resume)
     response = client.responses.create(
         model="gpt-3.5-turbo",  # Uses GPT-3.5 (cheaper than GPT-4)
